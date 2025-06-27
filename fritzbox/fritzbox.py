@@ -1,14 +1,16 @@
 # old TR-064-Protokoll with GET request and MD5
 
+
 from . import md5 as __md5		# MD5 hash 
 from . import tinyXML_250625 as __xml		# evaluating XML strings
 import urequests as __rq		#	
+
+
 
 FB_LOGIN_URL = const('http://fritz.box/login_sid.lua')						# URL for getting SID via TR-064 protokol
 FB_CMD_URL = const('http://fritz.box/webservices/homeautoswitch.lua')		# URL for communication with devices via fritzbox
 USERNAME = const('esp_smarthome')
 FB_PASSWD = const('Nikomey12!')
-CHUNKSIZE = 512
 
 # Check if esp is connected to fritzbox
 def connect():
@@ -41,11 +43,9 @@ class FritzBox:
         self.devices = {}
         self.usr = usr
         self.__first_chunk = False
-        self.__chunks = False
         self.XML = __xml.XML()
-        self.__get_challenge()
-        self.__calc_response(pwd)
-        self.__send_response()
+        self.Sign_to_fritzbox(usr, pwd)
+        
         
     def __get_rq(self, url):
         ''' get request via urequest function '''
@@ -79,6 +79,12 @@ class FritzBox:
         self.XML.Reset()
         self.sid = self.XML.Data_from_tagname(getRQ, 'SID')
         print(f'3. SID: {self.sid}')
+    
+    def Sign_to_fritzbox(self, usr, pwd):
+        self.__get_challenge()
+        self.__calc_response(pwd)
+        self.__send_response()
+        
         
     def Send_cmd(self, cmd, ain=None):
         ''' Send a command '''
@@ -97,32 +103,9 @@ class FritzBox:
         self.ain = {}
         while True:
             attrib = self.XML.Attributes_from_tagname(xml, 'device')
+            if attrib['identifier']!='':
+                self.ain[attrib['identifier']] = attrib['productname']
+                print(attrib)
             i += 1
             if i==self.XML.tag_identities:
                 return self.ain
-            if attrib['identifier']!='':
-                self.ain[attrib['identifier']] = attrib['productname']
-            
-       
-    
-    
-
-    
-        
-"""
-    def __get_rq_chunk(self, url, chunksize=CHUNKSIZE):
-        print('A')
-        if not self.__first_chunk:
-            self.response = __rq.get(url, stream=True)
-            self.__first_chunk = True
-        data = self.response.raw.read(512) if self.response.raw is not None else b''
-        if data==b'':
-            self.response.close()
-            self.__chunks = False
-        return data
-"""
-        
-        
-        
-        
-        
